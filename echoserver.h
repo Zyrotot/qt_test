@@ -53,6 +53,7 @@
 #include <QtCore/QObject>
 #include <QtCore/QList>
 #include <QtCore/QByteArray>
+#include <QTimer> // Add QTimer include
 
 QT_FORWARD_DECLARE_CLASS(QWebSocketServer)
 QT_FORWARD_DECLARE_CLASS(QWebSocket)
@@ -72,11 +73,15 @@ private Q_SLOTS:
     void processTextMessage(QString message);
     void processBinaryMessage(QByteArray message);
     void socketDisconnected();
+    void sendPing(); // Function to send pings
+    int numConnections(); // Add a method to return the number of accepted connections
+    void processPong(quint64 elapsedTime, const QByteArray &payload);
 
 private:
     QWebSocketServer *m_pWebSocketServer;
     QList<QWebSocket *> m_clients;
     bool m_debug;
+    QTimer m_pingTimer; // New QTimer for sending pings
 };
 
 #endif //ECHOSERVER_H

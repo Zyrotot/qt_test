@@ -64,6 +64,11 @@ EchoServer::EchoServer(quint16 port, bool debug, QObject *parent) :
     if (m_pWebSocketServer->listen(QHostAddress::Any, port)) {
         if (m_debug)
             qDebug() << "Echoserver listening on port" << port;
+
+        // Connect the timer's timeout signal to the slot for checking alive connections
+        connect(&m_pingTimer, &QTimer::timeout, this, &EchoServer::sendPing);
+        m_pingTimer.start(5000); // Check every 5 seconds
+
         connect(m_pWebSocketServer, &QWebSocketServer::newConnection,
                 this, &EchoServer::onNewConnection);
         connect(m_pWebSocketServer, &QWebSocketServer::closed, this, &EchoServer::closed);
@@ -85,6 +90,7 @@ void EchoServer::onNewConnection()
     connect(pSocket, &QWebSocket::textMessageReceived, this, &EchoServer::processTextMessage);
     connect(pSocket, &QWebSocket::binaryMessageReceived, this, &EchoServer::processBinaryMessage);
     connect(pSocket, &QWebSocket::disconnected, this, &EchoServer::socketDisconnected);
+    connect(pSocket, &QWebSocket::pong, this, &EchoServer::processPong);
 
     m_clients << pSocket;
 }
@@ -125,4 +131,32 @@ void EchoServer::socketDisconnected()
         pClient->deleteLater();
     }
 }
+
+void EchoServer::sendPing()
+{
+    if (m_debug) {
+        int connectionQuant = this->numConnections(); // Get the number of connections using your function
+        qDebug() << "Sending pings to " << connectionQuant << " clients";
+    }
+
+    foreach (QWebSocket *client, m_clients) {
+        if (m_debug)
+            qDebug() << "Sending ping to client:" << client;
+        client->ping(); // Send a ping message to each connected client
+        //TODO: Create timeout to handle offline connections
+    }
+}
+
+void EchoServer::processPong(quint64 elapsedTime, const QByteArray &payload)
+{
+    QWebSocket *pClient = qobject_cast<QWebSocket *>(sender());
+    if (m_debug)
+        qDebug() << "Pong received from:" << pClient << "Elapsed time:" << elapsedTime << "Payload:" << payload;
+}
+
+int EchoServer::numConnections()
+{
+    return m_clients.size();
+}
+
 //! [socketDisconnected]
