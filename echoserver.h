@@ -53,7 +53,9 @@
 #include <QtCore/QObject>
 #include <QtCore/QList>
 #include <QtCore/QByteArray>
-#include <QTimer> // Add QTimer include
+#include <QtCore/QHash>
+#include <QDateTime>
+#include <QTimer>
 
 QT_FORWARD_DECLARE_CLASS(QWebSocketServer)
 QT_FORWARD_DECLARE_CLASS(QWebSocket)
@@ -82,6 +84,8 @@ private:
     QList<QWebSocket *> m_clients;
     bool m_debug;
     QTimer m_pingTimer; // New QTimer for sending pings
+    QHash<QWebSocket*, QDateTime> m_lastPingTime;
+
 };
 
 #endif //ECHOSERVER_H

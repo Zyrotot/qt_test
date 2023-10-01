@@ -93,6 +93,8 @@ void EchoServer::onNewConnection()
     connect(pSocket, &QWebSocket::pong, this, &EchoServer::processPong);
 
     m_clients << pSocket;
+
+    m_lastPingTime[pSocket] = QDateTime::currentDateTime();
 }
 //! [onNewConnection]
 
@@ -143,7 +145,15 @@ void EchoServer::sendPing()
         if (m_debug)
             qDebug() << "Sending ping to client:" << client;
         client->ping(); // Send a ping message to each connected client
-        //TODO: Create timeout to handle offline connections
+
+        // Check if the last ping time is older than 5 seconds
+        QDateTime currentTime = QDateTime::currentDateTime();
+        if (m_lastPingTime.contains(client) && m_lastPingTime[client].msecsTo(currentTime) > 5000) {
+            // Disconnect the client if no response within 5 seconds
+            if (m_debug)
+                qDebug() << "Client did not respond to ping, disconnecting:" << client;
+            client->close();
+        }
     }
 }
 
@@ -152,6 +162,9 @@ void EchoServer::processPong(quint64 elapsedTime, const QByteArray &payload)
     QWebSocket *pClient = qobject_cast<QWebSocket *>(sender());
     if (m_debug)
         qDebug() << "Pong received from:" << pClient << "Elapsed time:" << elapsedTime << "Payload:" << payload;
+
+    // Update the last ping timestamp for the client
+    m_lastPingTime[pClient] = QDateTime::currentDateTime();
 }
 
 int EchoServer::numConnections()
